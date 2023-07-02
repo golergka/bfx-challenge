@@ -1,6 +1,7 @@
 'use strict'
 
 const hash = require('./hash')
+const { difficulty } = require('./config.json')
 
 /**
  * @typedef {Object} MinedBlock
@@ -9,25 +10,27 @@ const hash = require('./hash')
  */
 
 /**
+ * Checks that the block hash is valid.
+ *
+ * @param {MinedBlock} block
+ */
+const checkBlock = (block) =>
+  hash(block).substring(0, difficulty) === '0'.repeat(difficulty)
+
+/**
  *
  * @param {Object} block
- * @param {number} difficulty
  * @returns {Generator<unknown, MinedBlock, unknown>}
  */
-function* mine(block, difficulty) {
-  let nonce = 0
-  let blockHash
-  let minedBlock
+function* mineBlock(block) {
+  const minedBlock = { ...block, nonce: 0 }
 
-  do {
-    nonce++
-    minedBlock = { ...block, nonce }
-    blockHash = hash(minedBlock)
-
+  while (!checkBlock(minedBlock)) {
+    minedBlock.nonce++
     yield
-  } while (blockHash.substring(0, difficulty) !== '0'.repeat(difficulty))
+  }
 
   return minedBlock
 }
 
-module.exports = mine
+module.exports = { mineBlock, checkBlock }

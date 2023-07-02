@@ -35,6 +35,7 @@ npm run client
 - [ ] Refactor order matching logic into separate files
 - [ ] Make order matching logic work in-place with array indexes for performance
 - [ ] Separate mining into web workers
+- [ ] Review which configuration parameters should be injected where — develop proper levels of abstraction
 
 ## Questions
 
