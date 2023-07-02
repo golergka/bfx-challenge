@@ -7,6 +7,7 @@ const { miningDifficulty } = require('./config.json')
  * @typedef {Object} MinedBlock
  *
  * @property {string} nonce - The nonce used to mine the block.
+ * @property {string} clientId - The client who mined this block.
  */
 
 /**
@@ -20,10 +21,11 @@ const checkBlock = (block) =>
 /**
  *
  * @param {Object} block
+ * @param {string} clientId
  * @returns {Generator<unknown, MinedBlock, unknown>}
  */
-function* mineBlock(block) {
-  const minedBlock = { ...block, nonce: 0 }
+function* mineBlock(block, clientId) {
+  const minedBlock = { ...block, clientId, nonce: 0 }
 
   while (!checkBlock(minedBlock)) {
     minedBlock.nonce++
