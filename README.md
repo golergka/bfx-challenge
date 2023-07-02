@@ -35,7 +35,10 @@ npm run client
   - [ ] Complete project setup with `grape` servers in one script
   - [ ] Use proper money type instead of `number` and solve float-point arithmetic issues
   - [ ] Include hash of the whole block into order's hash. Currently orders are only ordered based on their own hashes, which incentivices order placers to come up with smaller hashes, which will increase the likelihood of conflict. If we include the hash of the whole block into the order's hash, the whole hash will be unpredictable.
+  - [ ] Refactor order matching logic into separate files
+	- [ ] Make order matching logic work in-place with array indexes for performance
 
 ## Questions
 
 - Why do I need to run two grape servers? Only the port number of the first one of them, 30001, is used anywhere in the example code. Both the challenge description and the referenced blog post don't have any explanation of this.
+- Why can't I use Typescript for this assignment? Working with Vanilla JS is making me really unproductive.

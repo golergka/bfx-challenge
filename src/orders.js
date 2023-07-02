@@ -31,6 +31,34 @@ const copyOrder = ({ id, clientId, type, asset, quantity, price }) => ({
 })
 
 /**
+ * Computes a unique hash for the given order.
+ * @param {Order} order
+ */
+const getOrderHash = (order) =>
+  crypto
+    .createHash('sha256')
+    .update(`${order.clientId}:${order.type}:${order.asset}:${order.price}`)
+    .digest('hex')
+
+const compareStrings = (a, b) => {
+  if (a < b) {
+    return -1
+  } else if (a > b) {
+    return 1
+  } else {
+    throw new Error(`Duplicate string ${a}`)
+  }
+}
+
+/**
+ * @param {Order} a
+ * @param {Order} b
+ * @returns {number}
+ */
+const compareOrdersByHash = (a, b) =>
+  compareStrings(getOrderHash(a), getOrderHash(b))
+
+/**
  * @typedef {Object} Balance
  *
  * Balance of an asset for a client. Computed from the chain. Used as a data
@@ -40,6 +68,15 @@ const copyOrder = ({ id, clientId, type, asset, quantity, price }) => ({
  * @property {string} asset - The asset.
  * @property {number} quantity - The quantity of the asset.
  */
+
+const getBalanceHash = (balance) =>
+  crypto
+    .createHash('sha256')
+    .update(`${balance.clientId}:${balance.asset}:${balance.quantity}`)
+    .digest('hex')
+
+const compareBalancesByHash = (a, b) =>
+  compareStrings(getBalanceHash(a), getBalanceHash(b))
 
 /**
  * @typedef {Map<string, number>} AssetBalances
@@ -66,7 +103,7 @@ function balanceListToMap(balances) {
     if (assetBalances.has(clientId)) {
       throw new Error(`Duplicate balance for ${clientId} and ${asset}`)
     }
-    clientBalances.set(clientId, quantity)
+    assetBalances.set(clientId, quantity)
   }
   return result
 }
@@ -79,7 +116,7 @@ function balanceListToMap(balances) {
  * @param {string} asset
  * @returns {AssetBalances} balance reference for the given asset
  */
-function getBalance(balances, asset) {
+function getOrCreateBalance(balances, asset) {
   if (!balances.has(asset)) {
     balances.set(asset, new Map())
   }
@@ -98,6 +135,7 @@ function balanceMapToList(balanceReference) {
       result.push({ clientId, asset, quantity })
     }
   }
+  result.sort(compareBalancesByHash)
   return result
 }
 
@@ -123,30 +161,27 @@ function executeOrders(
   // Give the buyer what they bought
   assetBalances.set(
     buyOrder.clientId,
-    assetBalances.get(buyOrder.clientId) + quantity
+    (assetBalances.get(buyOrder.clientId) || 0) + quantity
   )
   // Take the asset from the seller
   assetBalances.set(
     sellOrder.clientId,
-    assetBalances.get(sellOrder.clientId) - quantity
+    (assetBalances.get(sellOrder.clientId) || 0) - quantity
   )
 
-  const price = buyOrder.price
-  if (sellOrder.price !== price) {
-    throw new Error('Prices do not match')
-  }
+  const price = sellOrder.price
 
   const currencyAmount = price * quantity
 
   // Give the seller default currency
   currencyBalances.set(
     sellOrder.clientId,
-    currencyBalances.get(sellOrder.clientId) + currencyAmount
+    (currencyBalances.get(sellOrder.clientId) || 0) + currencyAmount
   )
   // Take the default currency from the buyer
   currencyBalances.set(
     buyOrder.clientId,
-    currencyBalances.get(buyOrder.clientId) - currencyAmount
+    (currencyBalances.get(buyOrder.clientId) || 0) - currencyAmount
   )
 
   // Remove the quantity from the buy order
@@ -197,7 +232,19 @@ const buildOrderBook = (orders) => ({
 })
 
 /**
- * Combines order books to a list of orders.
+ * Builds order books from the given orders for all assets.
+ *
+ * @param {Order[]} orders
+ * @returns {[string, OrderBook][]}
+ */
+const buildOrderBooks = (orders) =>
+  [...splitOrdersByAsset(orders.map(copyOrder))].map(([asset, orders]) => [
+    asset,
+    buildOrderBook(orders)
+  ])
+
+/**
+ * Combines order books to a list of orders, stably sorted by hash.
  *
  * @param {Map<string, OrderBook>} orderBooks
  * @returns {Order[]}
@@ -207,43 +254,16 @@ function orderBooksToOrders(orderBooks) {
   for (const [_, orderBook] of orderBooks) {
     result.push(...orderBook.buyOrders, ...orderBook.sellOrders)
   }
+  result.sort(compareOrdersByHash)
   return result
 }
-
-/**
- * Computes a unique hash for the given order.
- * @param {Order} order
- */
-const getOrderHash = (order) =>
-  crypto
-    .createHash('sha256')
-    .update(`${order.clientId}:${order.type}:${order.asset}:${order.price}`)
-    .digest('hex')
-
-/**
- * @param {Order} a
- * @param {Order} b
- * @returns {number}
- */
-const compareOrdersByHash = (a, b) => {
-  const aHash = getOrderHash(a)
-  const bHash = getOrderHash(b)
-  if (aHash < bHash) {
-    return -1
-  } else if (aHash > bHash) {
-    return 1
-  } else {
-    throw new Error('Duplicate order hash')
-  }
-}
-
 /**
  * Pops the last order and all other orders with the same price.
  * **Modifies the provided array in place.*
  *
  * @param {Order[]} orders non-empty array of sorted orders, from worst to best
  * @throws if the order array is empty
- * @returns {Order[]} popped orders, sorted by their hash
+ * @returns {[Order[], number]} popped orders, sorted by their hash, and their price
  */
 function popBestOrders(orders) {
   const bestOrderPrice = orders[orders.length - 1].price
@@ -255,7 +275,7 @@ function popBestOrders(orders) {
     result.push(orders.pop())
   }
   result.sort(compareOrdersByHash)
-  return result
+  return [result, bestOrderPrice]
 }
 
 /**
@@ -268,8 +288,14 @@ function popBestOrders(orders) {
  */
 function matchOrderBook(orderBook, assetBalances, currencyBalances) {
   while (orderBook.buyOrders.length > 0 && orderBook.sellOrders.length > 0) {
-    const bestBuyOrders = popBestOrders(orderBook.buyOrders)
-    const bestSellOrders = popBestOrders(orderBook.sellOrders)
+    const [bestBuyOrders, bestBuyPrice] = popBestOrders(orderBook.buyOrders)
+    const [bestSellOrders, bestSellPrice] = popBestOrders(orderBook.sellOrders)
+
+    if (bestBuyPrice < bestSellPrice) {
+      orderBook.buyOrders.push(...bestBuyOrders)
+      orderBook.sellOrders.push(...bestSellOrders)
+      break
+    }
 
     while (bestBuyOrders.length > 0 && bestSellOrders.length > 0) {
       const buyOrder = bestBuyOrders[0]
@@ -290,8 +316,12 @@ function matchOrderBook(orderBook, assetBalances, currencyBalances) {
       }
     }
 
-    if (bestBuyOrders.length > 0 || sellOrder.length > 0) {
-      break
+    if (bestBuyOrders.length > 0) {
+      orderBook.buyOrders.push(...bestBuyOrders)
+    }
+
+    if (bestSellOrders.length > 0) {
+      orderBook.sellOrders.push(...bestSellOrders)
     }
   }
 }
@@ -307,6 +337,9 @@ function matchOrderBook(orderBook, assetBalances, currencyBalances) {
  * fulfilled.
  */
 
+/** Default currency that other assets are bought or sold with */
+const defaultAsset = 'BTC'
+
 /**
  * Matches the given block of orders with the given balances. Returns orders
  * and balances that serve as a beginning of a new block.
@@ -315,16 +348,16 @@ function matchOrderBook(orderBook, assetBalances, currencyBalances) {
  * @return {Block} a new block with remaining orders and updated balances
  */
 function matchBlock(block) {
-  const orderBooks = splitOrdersByAsset(
-    block.orders.map(copyOrder)
-  ).map(([asset, orders]) => [asset, buildOrderBook(orders)])
+  const orderBooks = buildOrderBooks(block.orders)
   const balances = balanceListToMap(block.balances)
 
-  /** Default currency that other assets are bought or sold with */
-  const defaultAsset = 'BTC'
-  const currencyBalances = getBalance(balances, defaultAsset)
+  const currencyBalances = getOrCreateBalance(balances, defaultAsset)
   for (const [asset, orderBook] of orderBooks) {
-    matchOrderBook(orderBook, balances.get(asset), currencyBalances)
+    matchOrderBook(
+      orderBook,
+      getOrCreateBalance(balances, asset),
+      currencyBalances
+    )
   }
 
   return {
@@ -334,5 +367,9 @@ function matchBlock(block) {
 }
 
 module.exports = {
-  matchBlock
+  defaultAsset,
+  executeOrders,
+  popBestOrders,
+  matchBlock,
+  buildOrderBooks
 }
