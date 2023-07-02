@@ -31,7 +31,10 @@ npm run client
 
 - [x] Basic hello world project following the challenge instructions
 - _Optional_
+
   - [ ] Complete project setup with `grape` servers in one script
+  - [ ] Use proper money type instead of `number` and solve float-point arithmetic issues
+  - [ ] Include hash of the whole block into order's hash. Currently orders are only ordered based on their own hashes, which incentivices order placers to come up with smaller hashes, which will increase the likelihood of conflict. If we include the hash of the whole block into the order's hash, the whole hash will be unpredictable.
 
 ## Questions
 
