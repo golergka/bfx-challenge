@@ -1,6 +1,7 @@
 const hash = require('./hash')
 const { matchBlock } = require('./match')
 const { mineBlock, checkBlock } = require('./mine')
+const { miningIterations } = require('./config.json')
 
 class Blockchain {
   /**
@@ -42,12 +43,11 @@ class Blockchain {
   /**
    * Attempts to mine the current block.
    *
-   * @param {number} iterations
    * @returns {module:mine~MinedBlock|undefined} mined block or undefined if
    * mining is not finished
    */
-  mine(iterations) {
-    for (let i = 0; i < iterations; i++) {
+  mine() {
+    for (let i = 0; i < miningIterations; i++) {
       const result = this.mining.next()
       if (result.done) {
         this.chain.push(result.value)

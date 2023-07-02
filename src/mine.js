@@ -1,7 +1,7 @@
 'use strict'
 
 const hash = require('./hash')
-const { difficulty } = require('./config.json')
+const { miningDifficulty } = require('./config.json')
 
 /**
  * @typedef {Object} MinedBlock
@@ -15,7 +15,7 @@ const { difficulty } = require('./config.json')
  * @param {MinedBlock} block
  */
 const checkBlock = (block) =>
-  hash(block).substring(0, difficulty) === '0'.repeat(difficulty)
+  hash(block).substring(0, miningDifficulty) === '0'.repeat(miningDifficulty)
 
 /**
  *
