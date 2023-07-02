@@ -15,17 +15,13 @@ grape --dp 20001 --aph 30001 --bn '127.0.0.1:20002'
 grape --dp 20002 --aph 40001 --bn '127.0.0.1:20001'
 ```
 
-Run server instance:
+Run node instance:
 
 ```bash
-npm run server
+npm start
 ```
 
-Run client instance:
-
-```bash
-npm run client
-```
+To test the project, I recommend starting a few instances. Unfortunatley, grape turned out to be quite brittle for me, so you may need to restart it and services a few times. However, in the end I was able to run three blockchain nodes without a problem.
 
 ## Future improvements
 
