@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": true,
+    "target": "esnext",
+    "moduleResolution": "node",
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "resolveJsonModule": true,
+    "lib": ["esnext"]
+  },
+  "include": ["src/**/*.js"],
+  "exclude": ["./node_modules"]
+}

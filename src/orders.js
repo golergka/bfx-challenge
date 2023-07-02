@@ -219,7 +219,7 @@ function splitOrdersByAsset(orders) {
 
 /**
  * Builds order books from the given orders for one asset.
- * @param {Order} orders
+ * @param {Order[]} orders
  * @returns {OrderBook} order book for the given asset
  */
 const buildOrderBook = (orders) => ({
@@ -246,7 +246,7 @@ const buildOrderBooks = (orders) =>
 /**
  * Combines order books to a list of orders, stably sorted by hash.
  *
- * @param {Map<string, OrderBook>} orderBooks
+ * @param {[string, OrderBook][]} orderBooks
  * @returns {Order[]}
  */
 function orderBooksToOrders(orderBooks) {
@@ -284,7 +284,7 @@ function popBestOrders(orders) {
  *
  * @param {OrderBook} orderBook orders for the given asset
  * @param {AssetBalances} assetBalances balances for the given asset
- * @param {CurrencyBalances} currencyBalances balances for the default currency
+ * @param {AssetBalances} currencyBalances balances for the default currency
  */
 function matchOrderBook(orderBook, assetBalances, currencyBalances) {
   while (orderBook.buyOrders.length > 0 && orderBook.sellOrders.length > 0) {
