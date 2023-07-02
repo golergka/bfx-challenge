@@ -1,6 +1,6 @@
 'use strict'
 
-const crypto = require('crypto')
+const hash = require('./hash')
 
 /**
  * @typedef {Object} Order
@@ -30,16 +30,6 @@ const copyOrder = ({ id, clientId, type, asset, quantity, price }) => ({
   price
 })
 
-/**
- * Computes a unique hash for the given order.
- * @param {Order} order
- */
-const getOrderHash = (order) =>
-  crypto
-    .createHash('sha256')
-    .update(`${order.clientId}:${order.type}:${order.asset}:${order.price}`)
-    .digest('hex')
-
 const compareStrings = (a, b) => {
   if (a < b) {
     return -1
@@ -55,8 +45,7 @@ const compareStrings = (a, b) => {
  * @param {Order} b
  * @returns {number}
  */
-const compareOrdersByHash = (a, b) =>
-  compareStrings(getOrderHash(a), getOrderHash(b))
+const compareOrdersByHash = (a, b) => compareStrings(hash(a), hash(b))
 
 /**
  * @typedef {Object} Balance
@@ -69,14 +58,7 @@ const compareOrdersByHash = (a, b) =>
  * @property {number} quantity - The quantity of the asset.
  */
 
-const getBalanceHash = (balance) =>
-  crypto
-    .createHash('sha256')
-    .update(`${balance.clientId}:${balance.asset}:${balance.quantity}`)
-    .digest('hex')
-
-const compareBalancesByHash = (a, b) =>
-  compareStrings(getBalanceHash(a), getBalanceHash(b))
+const compareBalancesByHash = (a, b) => compareStrings(hash(a), hash(b))
 
 /**
  * @typedef {Map<string, number>} AssetBalances
@@ -332,9 +314,13 @@ function matchOrderBook(orderBook, assetBalances, currencyBalances) {
  * Block of orders and previous balances. Source of truth, saved in the chain.
  * Solving it produces a new set of balances and (unfulfilled) orders.
  *
+ * Not yet mined, so a work in progress.
+ *
  * @property {Order[]} orders - Orders to be fulfilled.
  * @property {Balance[]} balances - Balances before the orders were
  * fulfilled.
+ * @property {string|undefined} prevBlockHash — Hash of the previous block.
+ * Empty for first block in chain.
  */
 
 /** Default currency that other assets are bought or sold with */
@@ -344,12 +330,12 @@ const defaultAsset = 'BTC'
  * Matches the given block of orders with the given balances. Returns orders
  * and balances that serve as a beginning of a new block.
  *
- * @param {Block} block
+ * @param {Block} prevBlock
  * @return {Block} a new block with remaining orders and updated balances
  */
-function matchBlock(block) {
-  const orderBooks = buildOrderBooks(block.orders)
-  const balances = balanceListToMap(block.balances)
+function matchBlock(prevBlock) {
+  const orderBooks = buildOrderBooks(prevBlock.orders)
+  const balances = balanceListToMap(prevBlock.balances)
 
   const currencyBalances = getOrCreateBalance(balances, defaultAsset)
   for (const [asset, orderBook] of orderBooks) {
@@ -362,7 +348,8 @@ function matchBlock(block) {
 
   return {
     orders: orderBooksToOrders(orderBooks),
-    balances: balanceMapToList(balances)
+    balances: balanceMapToList(balances),
+    prevBlockHash: hash(prevBlock)
   }
 }
 

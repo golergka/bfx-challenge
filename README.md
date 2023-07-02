@@ -37,6 +37,7 @@ npm run client
   - [ ] Include hash of the whole block into order's hash. Currently orders are only ordered based on their own hashes, which incentivices order placers to come up with smaller hashes, which will increase the likelihood of conflict. If we include the hash of the whole block into the order's hash, the whole hash will be unpredictable.
   - [ ] Refactor order matching logic into separate files
 	- [ ] Make order matching logic work in-place with array indexes for performance
+	- [ ] Separate mining into web workers
 
 ## Questions
 

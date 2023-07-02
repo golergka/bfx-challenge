@@ -4,7 +4,7 @@ import {
   executeOrders,
   popBestOrders,
   buildOrderBooks
-} from './orders'
+} from './match'
 
 describe(buildOrderBooks.name, () => {
   it('builds order books for orders on the same asset', () => {
@@ -149,12 +149,14 @@ describe(matchBlock.name, () => {
   it('given an empty block, produces an empty block', () => {
     const prevBlock = {
       orders: [],
-      balances: []
+      balances: [],
+      prevBlockHash: '0'
     }
-    expect(matchBlock(prevBlock)).toEqual({
-      orders: [],
-      balances: []
-    })
+
+    const nextBlock = matchBlock(prevBlock)
+
+    expect(nextBlock.orders).toHaveLength(0)
+    expect(nextBlock.balances).toHaveLength(0)
   })
 
   it("given a block with no orders, doesn't change any balances", () => {
@@ -171,7 +173,8 @@ describe(matchBlock.name, () => {
           asset: 'BTC',
           quantity: 2
         }
-      ]
+      ],
+      prevBlockHash: '0'
     }
 
     const nextBlock = matchBlock(prevBlock)
@@ -203,7 +206,8 @@ describe(matchBlock.name, () => {
           asset: 'BTC',
           quantity: 2
         }
-      ]
+      ],
+      prevBlockHash: '0'
     }
 
     const nextBlock = matchBlock(prevBlock)
@@ -233,7 +237,8 @@ describe(matchBlock.name, () => {
           price: 2
         }
       ],
-      balances: []
+      balances: [],
+      prevBlockHash: '0'
     }
 
     const nextBlock = matchBlock(prevBlock)
@@ -266,7 +271,8 @@ describe(matchBlock.name, () => {
           price: 2
         }
       ],
-      balances: []
+      balances: [],
+      prevBlockHash: '0'
     }
 
     const nextBlock = matchBlock(prevBlock)
@@ -318,7 +324,8 @@ describe(matchBlock.name, () => {
           asset: 'BTC',
           quantity: -100
         }
-      ]
+      ],
+      prevBlockHash: '0'
     }
 
     const nextBlock = matchBlock(prevBlock)
@@ -357,7 +364,8 @@ describe(matchBlock.name, () => {
           price: 2
         }
       ],
-      balances: []
+      balances: [],
+      prevBlockHash: '0'
     }
 
     const nextBlock = matchBlock(prevBlock)
@@ -390,7 +398,8 @@ describe(matchBlock.name, () => {
           price: 3
         }
       ],
-      balances: []
+      balances: [],
+      prevBlockHash: '0'
     }
 
     const nextBlock = matchBlock(prevBlock)
@@ -424,7 +433,8 @@ describe(matchBlock.name, () => {
           price: 2
         }
       ],
-      balances: []
+      balances: [],
+      prevBlockHash: '0'
     }
 
     const nextBlock = matchBlock(prevBlock)
@@ -458,7 +468,8 @@ describe(matchBlock.name, () => {
           price: 2
         }
       ],
-      balances: []
+      balances: [],
+      prevBlockHash: '0'
     }
 
     const nextBlock = matchBlock(prevBlock)
@@ -492,7 +503,8 @@ describe(matchBlock.name, () => {
           price: 2
         }
       ],
-      balances: []
+      balances: [],
+      prevBlockHash: '0'
     }
 
     const nextBlock = matchBlock(prevBlock)
@@ -526,7 +538,8 @@ describe(matchBlock.name, () => {
           price: 2
         }
       ],
-      balances: []
+      balances: [],
+      prevBlockHash: '0'
     }
 
     const nextBlock = matchBlock(prevBlock)
